@@ -294,6 +294,50 @@ if df is not None:
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 valid_df.to_excel(writer, sheet_name='Prices', index=False)
 
+                # Get the worksheet
+                worksheet = writer.sheets['Prices']
+
+                # Auto-adjust column widths
+                for column in worksheet.columns:
+                    max_length = 0
+                    column_letter = column[0].column_letter
+
+                    for cell in column:
+                        try:
+                            if cell.value:
+                                max_length = max(max_length, len(str(cell.value)))
+                        except:
+                            pass
+
+                    adjusted_width = min(max_length + 2, 50)
+                    worksheet.column_dimensions[column_letter].width = adjusted_width
+
+                # Apply light blue background to Current_Price_INR and Bloomberg Code columns
+                from openpyxl.styles import PatternFill
+                light_blue_fill = PatternFill(start_color="ADD8E6", end_color="ADD8E6", fill_type="solid")
+
+                # Find column indices
+                headers = [cell.value for cell in worksheet[1]]
+                price_col_idx = None
+                bloomberg_col_idx = None
+
+                for idx, header in enumerate(headers, 1):
+                    if header == 'Current_Price_INR':
+                        price_col_idx = idx
+                    elif header == 'Bloomberg Code':
+                        bloomberg_col_idx = idx
+
+                # Apply blue fill to the columns
+                if price_col_idx:
+                    col_letter = worksheet.cell(1, price_col_idx).column_letter
+                    for row in range(1, len(valid_df) + 2):
+                        worksheet[f'{col_letter}{row}'].fill = light_blue_fill
+
+                if bloomberg_col_idx:
+                    col_letter = worksheet.cell(1, bloomberg_col_idx).column_letter
+                    for row in range(1, len(valid_df) + 2):
+                        worksheet[f'{col_letter}{row}'].fill = light_blue_fill
+
             excel_data = output.getvalue()
 
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
